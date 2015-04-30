@@ -6,7 +6,6 @@
 
 Because of this, the best way to discover available functions and parameters is to browse the SOAP WSDL available at `/soap.php` in your 1CRM installation. All the functions and parameters are described there and may be passed to the `call` function as appropriate.
 
-
 The class is compatible with SSL (which you should be using anyway!), SPDY, IPv4 and IPv6, and makes use of HTTP compression and keep-alive for greatest efficiency. Certificate verification is enabled, so you will get errors if you try to use a self-signed, invalid or expired SSL certificate.
 
 ##Requirements
@@ -14,9 +13,9 @@ The class requires that you are running PHP 5.3 or later, and have the PHP `curl
 
 ##Usage
 
-This class is available in composer via packagist; add this line to your `composer.json` file:
+This class is available in composer via [packagist](https://packagist.org/packages/syniah/onecrmclient); add this line to your `composer.json` file:
 
-    "Syniah/OneCRMClient": "~1.0"
+    "syniah/onecrmclient": "~1.0"
 
 The class is structured according to the PSR-4 convention, uses the PSR-2 coding standard, is compatible with PHP 5.3 and later, and uses the `OneCRM` namespace.
 
