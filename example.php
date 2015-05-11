@@ -1,5 +1,10 @@
 <?php
-require 'src/OneCRM/Client.php';
+/**
+ * Simple example of calling the 1CRM API
+ */
+
+//Load composer's autoloader if you haven't already
+require 'vendor/autoload.php';
 
 $c = new OneCRM\Client('https://1crm.example.com/service/v4/rest.php', false);
 try {
