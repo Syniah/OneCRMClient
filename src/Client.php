@@ -1,10 +1,10 @@
 <?php
 /**
- * 1CRM CRM system REST+JSON client class.
- * PHP Version 5.3
+ * 1CRM CRM system REST+JSON client.
+ * PHP Version 5.4
  * @package OneCRM\Client
  * @author Marcus Bointon <marcus@synchromedia.co.uk>
- * @copyright 2015 Synchromedia Limited
+ * @copyright 2016 Synchromedia Limited
  * @license MIT http://opensource.org/licenses/MIT
  * @link https://github.com/Syniah/OneCRMClient
  */
@@ -22,7 +22,7 @@ class Client
 {
     /**
      * Set to true (via constructor) to enable debug output.
-     * @type boolean
+     * @var boolean
      * @access protected
      */
     protected $debug = false;
@@ -30,62 +30,74 @@ class Client
     /**
      * The URL of the 1CRM service to talk to,
      * usually /service/v4/rest.php in your domain.
-     * @type string
+     * @var string
      * @access protected
      */
     protected $endpoint = '';
 
     /**
      * A CURL instance.
-     * @type resource
+     * @var resource
      * @access protected
      */
     protected $curl;
 
     /**
      * The session ID obtained when logging in, needed for subsequent requests.
-     * @type string
+     * @var string
      * @access protected
      */
     protected $sessionid = '';
 
     /**
      * The user name last used for login.
-     * @type string
+     * @var string
      * @access protected
      */
     protected $username = '';
 
     /**
      * The password last used for login.
-     * @type string
+     * @var string
      * @access protected
      */
     protected $password = '';
 
     /**
      * The login function returns user info which is kept in here.
-     * @type array
+     * @var array
      * @access protected
      */
-    protected $userinfo = array();
+    protected $userinfo = [];
 
     /**
      * The login function returns an array of modules info which is kept in here.
-     * @type array
+     * @var array
      * @access protected
      */
-    protected $modules = array();
+    protected $modules = [];
+
+    /**
+     * How long the most recent request took.
+     * @var float
+     */
+    protected $lastRequestDuration = 0.0;
+
+    /**
+     * The HTTP response code of the most recent request.
+     * @var integer
+     */
+    protected $lastResponseCode = 0;
 
     /**
      * @const A version string for this class
      */
-    const VERSION = '1.0';
+    const VERSION = '1.1';
 
     /**
      * Create a new client instance.
      * @param string  $endpoint The URL of the 1CRM service to talk to
-     * @param boolean $debug    Whether to enable debugging output
+     * @param boolean $debug Whether to enable debugging output
      * @throws ConnectionException
      */
     public function __construct($endpoint, $debug = false)
@@ -119,19 +131,19 @@ class Client
         //If we're logging in again, perhaps as a different user,
         //make sure we clear up any old connection
         $this->close();
-        $params = array(
+        $params = [
             'method'        => 'login',
             'input_type'    => 'JSON',
             'response_type' => 'JSON',
             'rest_data'     => json_encode(
-                array(
-                    'user_auth' => array(
+                [
+                    'user_auth' => [
                         'user_name' => $username,
                         'password'  => md5($password),
-                    ),
-                )
+                    ],
+                ]
             )
-        );
+        ];
         $result = $this->request($params);
         if (!isset($result->id)) {
             $this->close();
@@ -148,15 +160,15 @@ class Client
             throw new ModuleException('Module information missing');
         }
         //Translate the modules list returned by the API into something more usable
-        $this->modules = array();
+        $this->modules = [];
         foreach ($result->name_value_list->available_modules as $module) {
             if (property_exists($module, 'module_key')
                 and property_exists($module, 'module_label')
             ) {
-                $this->modules[$module->module_key] = array(
+                $this->modules[$module->module_key] = [
                     'name'  => $module->module_key,
                     'label' => $module->module_label
-                );
+                ];
             }
         }
         //Remove this list from the user info; no need to store it twice
@@ -167,18 +179,27 @@ class Client
     }
 
     /**
-     * Return a formatted list of what modules are available.
-     * List module label and name.
-     * @return string
+     * Fetch an associative array of modules, containing name and label fields, indexed by name.
+     * @return array
      * @throws ModuleException
      */
-    public function listModules()
+    public function getModules()
     {
         if (empty($this->modules)) {
             throw new ModuleException('No module information available');
         }
+        return $this->modules;
+    }
+
+    /**
+     * Return a formatted list of what modules are available.
+     * Lists module label and name.
+     * @return string
+     */
+    public function listModules()
+    {
         $out = '';
-        foreach ($this->modules as $module) {
+        foreach ($this->getModules() as $module) {
             $out .= $module['label'] . ' (' . $module['name'] . ")\n";
         }
 
@@ -217,7 +238,7 @@ class Client
      * @throws AuthException
      * @throws ModuleException
      */
-    public function call($module, $method, $params = array())
+    public function call($module, $method, $params = [])
     {
         $this->checkLogin();
         //Check module
@@ -226,12 +247,12 @@ class Client
         }
         $params['module_name'] = $module;
         $params['session'] = $this->sessionid;
-        $postfields = array(
+        $postfields = [
             'method'        => $method,
             'input_type'    => 'JSON',
             'response_type' => 'JSON',
             'rest_data'     => json_encode($params)
-        );
+        ];
 
         return $this->request($postfields);
     }
@@ -245,10 +266,10 @@ class Client
      */
     public function decodeResponse($response)
     {
-        $result = array();
+        $result = [];
         foreach ($response->entry_list as $item) {
             foreach ($item->name_value_list as $field) {
-                $result[] = array($field->name => $field->value);
+                $result[] = [$field->name => $field->value];
             }
         }
         return $result;
@@ -294,9 +315,16 @@ class Client
             $this->curl = curl_init(); //Note no URL supplied here
             $cookiefile = tempnam(sys_get_temp_dir(), '1crmcookie');
             //These properties remain the same for all requests, so set them now
+
+            //Enable HTTP/2 if it's available
+            if (defined('CURL_HTTP_VERSION_2_0')) {
+                $http = CURL_HTTP_VERSION_2_0;
+            } else {
+                $http = CURL_HTTP_VERSION_1_1;
+            }
             curl_setopt_array(
                 $this->curl,
-                array(
+                [
                     CURLOPT_URL            => $this->endpoint,
                     CURLOPT_FORBID_REUSE   => false,
                     CURLOPT_RETURNTRANSFER => true,
@@ -312,16 +340,15 @@ class Client
                     CURLOPT_SSL_VERIFYPEER => true,
                     CURLOPT_COOKIEJAR      => $cookiefile,
                     CURLOPT_COOKIEFILE     => $cookiefile,
-                    CURLOPT_HTTPHEADER     => array('Expect:'),
-                    CURLOPT_VERBOSE        => $this->debug
-                )
+                    CURLOPT_HTTPHEADER     => ['Expect:'],
+                    CURLOPT_VERBOSE        => $this->debug,
+                    CURLOPT_HTTP_VERSION   => $http
+                ]
             );
         }
 
-        if ($this->debug) {
-            echo "Request params:\n";
-            var_dump($params);
-        }
+        $this->debug($type . ' request params:');
+        $this->debug($params);
 
         //Select HTTP verb
         switch ($type) {
@@ -342,9 +369,11 @@ class Client
 
         //Set the request parameters
         curl_setopt($this->curl, CURLOPT_POSTFIELDS, $params);
-
+        $starttime = microtime(true);
         //Do the request
         $rawresponse = curl_exec($this->curl);
+        $this->lastRequestDuration = microtime(true) - $starttime;
+        $this->debug('Request duration: '. $this->lastRequestDuration . ' sec');
         if (!$rawresponse) {
             throw new ConnectionException(
                 'Request error: ' .
@@ -358,18 +387,18 @@ class Client
         $response = self::parseResponse($rawresponse);
 
         //Check HTTP code
-        if ($response['code'] != '200') {
+        $this->lastResponseCode = $response['code'];
+        $this->debug('Response code: ' . $this->lastResponseCode);
+        if ('200' != $response['code']) {
             throw new ConnectionException('Response error: ' . $response['code']);
         }
 
         //Extract and decode the JSON data in the response body
         if (!empty($response['body'])) {
             $result = @json_decode($response['body']);
+            $this->debug($result);
             if (!$result) {
                 throw new DataException('Error decoding response.');
-            }
-            if ($this->debug) {
-                var_dump($result);
             }
 
             //Return the complete decoded response
@@ -397,14 +426,14 @@ class Client
             $header_lines = explode("\r\n", $headers);
 
             // First line of headers is the HTTP response code
-            $matches = array();
+            $matches = [];
             $http_response_line = array_shift($header_lines);
             if (preg_match(
-                '@^HTTP/[0-9]\.[0-9] ([0-9]{3})@',
+                '@^HTTP/([0-9](\.[0-9])?) ([0-9]{3})@',
                 $http_response_line,
                 $matches
             )) {
-                $code = (integer)$matches[1];
+                $code = (integer)$matches[3];
             } else {
                 $code = 'Error';
             }
@@ -412,12 +441,30 @@ class Client
         } while (substr($code, 0, 1) == '1');
 
         // Put the rest of the headers in an array
-        $header_array = array();
+        $header_array = [];
         foreach ($header_lines as $header_line) {
             list($header, $value) = explode(': ', $header_line, 2);
             $header_array[$header] = $value;
         }
-        return array('code' => $code, 'header' => $header_array, 'body' => $body);
+        return ['code' => $code, 'header' => $header_array, 'body' => $body];
+    }
+
+    /**
+     * Return how long the last request took, in seconds.
+     * @return float
+     */
+    public function getLastRequestDuration()
+    {
+        return $this->lastRequestDuration;
+    }
+
+    /**
+     * Get the HTTP response code for the last request.
+     * @return int
+     */
+    public function getLastResponseCode()
+    {
+        return $this->lastResponseCode;
     }
 
     /**
@@ -429,45 +476,19 @@ class Client
     {
         return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
     }
-}
 
-/**
- * Exception base class.
- */
-class Exception extends \Exception
-{
-
-}
-
-/**
- * Thrown when curl connections fail: DNS failure, HTTP timeout etc.
- */
-class ConnectionException extends Exception
-{
-
-}
-
-/**
- * Thrown by calls to modules that don't exist.
- */
-class ModuleException extends Exception
-{
-
-}
-
-/**
- * Thrown when nonsensical data is encountered,
- * such as when responses are not valid JSON.
- */
-class DataException extends Exception
-{
-
-}
-
-/**
- * Thrown when login fails or session has expired.
- */
-class AuthException extends Exception
-{
-
+    /**
+     * Display debug output.
+     * @param $msg
+     */
+    protected function debug($msg)
+    {
+        if (!$this->debug) {
+            return;
+        }
+        if (!is_string($msg)) {
+            $msg = var_export($msg, true);
+        }
+        fputs(STDERR, gmdate('Y-m-d H:i:s'). "\t". $msg . "\n");
+    }
 }

@@ -6,15 +6,24 @@
 //Load composer's autoloader if you haven't already
 require 'vendor/autoload.php';
 
-$c = new OneCRM\Client('https://1crm.example.com/service/v4/rest.php', false);
+$host = 'https://demo.example.com/service/v4/rest.php';
+
+$c = new OneCRM\Client($host, false);
 try {
     $c->login('demo', 'demo');
-    echo $c->listModules();
+    echo "Connected to $host successfully\n";
+    echo 'Found '.count($c->getModules()). ' modules'."\n";
     //Find the first 10 accounts
     $response = $c->call(
         'Accounts',
         'get_entry_list',
-        array('select_fields' => array('id', 'name'), 'max_results' => 10)
+        [
+            'select_fields' => [
+                'id',
+                'name'
+            ],
+            'max_results' => 10
+        ]
     );
     //Process the response
     foreach ($response->entry_list as $item) {
@@ -23,6 +32,17 @@ try {
         }
         echo "\n";
     }
-} catch (OneCRM\Exception $e) {
-    echo 'An error occurred: ', $e->getMessage();
+    echo "Request took ".$c->getLastRequestDuration()." sec\n";
+    //Exception handling example - request for a non-existent module
+    try {
+        $response = $c->call('Bananas', 'get_entry_list');
+    } catch (\OneCRM\ModuleException $e) {
+        echo "Sorry, we have no bananas\n";
+    }
+} catch (\OneCRM\AuthException $e) {
+    echo 'An authentication error occurred: ' . $e->getMessage();
+} catch (\OneCRM\ModuleException $e) {
+    echo 'A module error occurred: ' . $e->getMessage();
+} catch (\OneCRM\Exception $e) {
+    echo 'An error occurred: ' . get_class($e) . ': ' . $e->getMessage();
 }

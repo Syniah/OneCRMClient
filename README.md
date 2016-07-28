@@ -6,10 +6,10 @@
 
 Because of this, the best way to discover available functions and parameters is to browse the SOAP WSDL available at `/soap.php` in your 1CRM installation. All the functions and parameters are described there and may be passed to the `call` function as appropriate.
 
-The class is compatible with SSL (which you should be using anyway!), SPDY, IPv4 and IPv6, and makes use of HTTP compression and keep-alive for greatest efficiency. Certificate verification is enabled, so you will get errors if you try to use a self-signed, invalid or expired SSL certificate.
+The class is compatible with TLS (which you should be using anyway!), HTTP/2, SPDY, IPv4 and IPv6, and makes use of HTTP compression and keep-alive for greatest efficiency. Certificate verification is enabled, so you will get errors if you try to use a self-signed, invalid or expired TLS certificate.
 
 ##Requirements
-The class requires that you are running PHP 5.3 or later, and have the PHP `curl` extension enabled.
+The class requires that you are running PHP 5.4 or later, and have the PHP `curl` extension enabled. If you are serving your site over HTTP/2, and have a recent enough CURL library with nghttp2 support compiled into PHP, this client will use HTTP/2.
 
 ##Usage
 
@@ -21,9 +21,10 @@ The class is structured according to the PSR-4 convention, uses the PSR-2 coding
 
 ```php
 <?php
-require 'src/OneCRM/Client.php';
+require 'vendor/autoload.php';
+use OneCRM\Client;
 
-$c = new OneCRM\Client('https://1crm.example.com/service/v4/rest.php', false);
+$c = new Client('https://1crm.example.com/service/v4/rest.php', false);
 try {
     $c->login('demo', 'demo');
     echo $c->listModules();
@@ -39,8 +40,8 @@ try {
         }
         echo "\n";
     }
-} catch (OneCRM\Exception $e) {
-    echo 'An error occurred: ', $e->getMessage();
+} catch (Exception $e) {
+    echo 'An error occurred: '. get_class($e) . ': ' . $e->getMessage();
 }
 ```
 
