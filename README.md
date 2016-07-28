@@ -17,7 +17,7 @@ This class is available in composer via [packagist](https://packagist.org/packag
 
     "syniah/onecrmclient": "~1.0"
 
-The class is structured according to the PSR-4 convention, uses the PSR-2 coding standard, is compatible with PHP 5.3 and later, and uses the `OneCRM` namespace.
+The class is structured according to the PSR-4 convention, uses the PSR-2 coding standard, is compatible with PHP 5.4 and later, and uses the `OneCRM` namespace.
 
 ```php
 <?php
