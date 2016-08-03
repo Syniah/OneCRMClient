@@ -13,7 +13,7 @@ The class requires that you are running PHP 5.4 or later, and have the PHP `curl
 
 ##Usage
 
-This class is available in composer via [packagist](https://packagist.org/packages/syniah/onecrmclient); either run `composer require syniah/onecrmclient "~1.0"` or add this line to your `composer.json` file manually, then run `composer update`:
+This class is available in [composer](https://getcomposer.org) via [packagist](https://packagist.org/packages/syniah/onecrmclient); either run `composer require syniah/onecrmclient "~1.0"` or add this line to your `composer.json` file manually, then run `composer update`:
 
     "syniah/onecrmclient": "~1.0"
 
