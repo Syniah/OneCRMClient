@@ -4,14 +4,15 @@
  */
 
 //Load composer's autoloader if you haven't already
-require 'vendor/autoload.php';
+require_once 'vendor/autoload.php';
 
-$host = 'https://demo.example.com/service/v4/rest.php';
+$endpoint = 'https://demo.example.com/service/v4/rest.php';
 
-$c = new OneCRM\Client($host, false);
+//See README for notes on how to enable debug output
+$c = new OneCRM\Client($endpoint, true);
 try {
     $c->login('demo', 'demo');
-    echo "Connected to $host successfully\n";
+    echo "Connected to $endpoint successfully\n";
     echo 'Found '.count($c->getModules()). ' modules'."\n";
     //Find the first 10 accounts
     $response = $c->call(
@@ -36,13 +37,15 @@ try {
     //Exception handling example - request for a non-existent module
     try {
         $response = $c->call('Bananas', 'get_entry_list');
-    } catch (\OneCRM\ModuleException $e) {
+    } catch (OneCRM\ModuleException $e) {
         echo "Sorry, we have no bananas\n";
     }
-} catch (\OneCRM\AuthException $e) {
+} catch (OneCRM\ConnectionException $e) {
+    echo 'A connection error occurred: ' . $e->getMessage();
+} catch (OneCRM\AuthException $e) {
     echo 'An authentication error occurred: ' . $e->getMessage();
-} catch (\OneCRM\ModuleException $e) {
+} catch (OneCRM\ModuleException $e) {
     echo 'A module error occurred: ' . $e->getMessage();
-} catch (\OneCRM\Exception $e) {
+} catch (OneCRM\Exception $e) {
     echo 'An error occurred: ' . get_class($e) . ': ' . $e->getMessage();
 }

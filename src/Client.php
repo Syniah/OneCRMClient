@@ -22,7 +22,9 @@ class Client
 {
     /**
      * Set to true (via constructor) to enable debug output.
-     * @var boolean
+     * Can also inject a callable to override how debug output is handled:
+     * e.g. $c = new Client($endpoint, function ($msg) { echo var_export($msg, true) ."\n"; });
+     * @var callable|boolean
      * @access protected
      */
     protected $debug = false;
@@ -97,16 +99,22 @@ class Client
     /**
      * Create a new client instance.
      * @param string  $endpoint The URL of the 1CRM service to talk to
-     * @param boolean $debug Whether to enable debugging output
+     * @param boolean|callable $debug Whether to enable debugging output
      * @throws ConnectionException
      */
-    public function __construct($endpoint, $debug = false)
+    public function __construct($endpoint, $debug = null)
     {
+        if (!is_null($debug)) {
+            if (is_callable($debug)) {
+                $this->debug = $debug;
+            } else {
+                $this->debug = (boolean)$debug;
+            }
+        }
         if (!filter_var($endpoint, FILTER_VALIDATE_URL, FILTER_FLAG_PATH_REQUIRED)) {
             throw new ConnectionException('Invalid endpoint URL given.');
         }
         $this->endpoint = $endpoint;
-        $this->debug = (boolean)$debug;
     }
 
     /**
@@ -139,6 +147,7 @@ class Client
                 [
                     'user_auth' => [
                         'user_name' => $username,
+                        //Yes, it really does this...
                         'password'  => md5($password),
                     ],
                 ]
@@ -341,7 +350,7 @@ class Client
                     CURLOPT_COOKIEJAR      => $cookiefile,
                     CURLOPT_COOKIEFILE     => $cookiefile,
                     CURLOPT_HTTPHEADER     => ['Expect:'],
-                    CURLOPT_VERBOSE        => $this->debug,
+                    CURLOPT_VERBOSE        => (true == $this->debug),
                     CURLOPT_HTTP_VERSION   => $http
                 ]
             );
@@ -479,13 +488,24 @@ class Client
 
     /**
      * Display debug output.
+     * If you run via a web browser, this output will appear in
+     * your web server's error log, not on your page.
      * @param $msg
      */
     protected function debug($msg)
     {
+        if (is_callable($this->debug)) {
+            call_user_func($this->debug, $msg);
+            return;
+        }
         if (!$this->debug) {
             return;
         }
+        //Deal with undefined stream constants
+        if (!defined('STDERR')) {
+            define('STDERR', fopen('php://stderr', 'w'));
+        }
+
         if (!is_string($msg)) {
             $msg = var_export($msg, true);
         }

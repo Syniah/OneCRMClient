@@ -22,9 +22,8 @@ The class is structured according to the PSR-4 convention, uses the PSR-2 coding
 ```php
 <?php
 require 'vendor/autoload.php';
-use OneCRM\Client;
 
-$c = new Client('https://1crm.example.com/service/v4/rest.php', false);
+$c = new OneCRM\Client('https://1crm.example.com/service/v4/rest.php', false);
 try {
     $c->login('demo', 'demo');
     echo $c->listModules();
@@ -40,9 +39,20 @@ try {
         }
         echo "\n";
     }
-} catch (Exception $e) {
+} catch (OneCRM\Exception $e) {
     echo 'An error occurred: '. get_class($e) . ': ' . $e->getMessage();
 }
+```
+
+##Debugging
+There is a built-in debug facility that outputs events, data structures and timings to STDERR - just pass `true` as the second parameter to the constructor: `$c = new Client($url, true);`. Because this goes to `STDERR`, this will not usually appear if you're running via a web server, but will appear in your server's error log; debug output will be visible if you're running via a CLI. 
+
+Alternatively you can inject your own debug facility by passing in a callable that accepts a single parameter containing the debug item (which may not be a string), which you can then handle as you like, for example:
+
+```php
+$c = new OneCRM\Client($endpoint, function ($msg) {
+    echo var_export($msg, true) . "\n";
+});
 ```
 
 ##Contributing
