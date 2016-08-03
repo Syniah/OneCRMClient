@@ -404,6 +404,7 @@ class Client
 
         //Extract and decode the JSON data in the response body
         if (!empty($response['body'])) {
+            /** @noinspection PhpUsageOfSilenceOperatorInspection */
             $result = @json_decode($response['body']);
             $this->debug($result);
             if (!$result) {
