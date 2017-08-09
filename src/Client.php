@@ -94,7 +94,7 @@ class Client
     /**
      * @const A version string for this class
      */
-    const VERSION = '1.1';
+    const VERSION = '1.2.1';
 
     /**
      * Create a new client instance.
