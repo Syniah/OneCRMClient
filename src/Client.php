@@ -392,6 +392,8 @@ class Client
             );
         }
 
+        $this->debug('Raw response');
+        $this->debug($rawresponse);
         //Decode the entire HTTP response
         $response = self::parseResponse($rawresponse);
 
@@ -403,19 +405,18 @@ class Client
         }
 
         //Extract and decode the JSON data in the response body
-        if (!empty($response['body'])) {
-            /** @noinspection PhpUsageOfSilenceOperatorInspection */
-            $result = @json_decode($response['body']);
-            $this->debug($result);
-            if (!$result) {
-                throw new DataException('Error decoding response.');
-            }
-
-            //Return the complete decoded response
-            return $result;
-        } else {
+        if (empty($response['body'])) {
             throw new DataException('Empty response.');
         }
+        /** @noinspection PhpUsageOfSilenceOperatorInspection */
+        $result = @json_decode($response['body']);
+        $this->debug($result);
+        if (!$result) {
+            throw new DataException('Error decoding response.');
+        }
+
+        //Return the complete decoded response
+        return $result;
     }
 
     /**
@@ -482,7 +483,7 @@ class Client
      * @param string $string The string to escape
      * @return string
      */
-    protected function escapeoutput($string)
+    protected function escapeOutput($string)
     {
         return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
     }
