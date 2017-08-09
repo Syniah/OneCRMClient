@@ -6,16 +6,17 @@
 //Load composer's autoloader if you haven't already
 require_once 'vendor/autoload.php';
 
+//Set this to the URL of your 1CRM REST endpoint
 $endpoint = 'https://demo.example.com/service/v4/rest.php';
 
 //See README for notes on how to enable debug output
-$c = new OneCRM\Client($endpoint, true);
+$onecrm = new OneCRM\Client($endpoint, true);
 try {
-    $c->login('demo', 'demo');
+    $onecrm->login('demo', 'demo');
     echo "Connected to $endpoint successfully\n";
-    echo 'Found '.count($c->getModules()). ' modules'."\n";
+    echo 'Found '.count($onecrm->getModules()). ' modules'."\n";
     //Find the first 10 accounts
-    $response = $c->call(
+    $response = $onecrm->call(
         'Accounts',
         'get_entry_list',
         [
@@ -33,10 +34,10 @@ try {
         }
         echo "\n";
     }
-    echo "Request took ".$c->getLastRequestDuration()." sec\n";
+    echo "Request took ".$onecrm->getLastRequestDuration()." sec\n";
     //Exception handling example - request for a non-existent module
     try {
-        $response = $c->call('Bananas', 'get_entry_list');
+        $response = $onecrm->call('Bananas', 'get_entry_list');
     } catch (OneCRM\ModuleException $e) {
         echo "Sorry, we have no bananas\n";
     }
